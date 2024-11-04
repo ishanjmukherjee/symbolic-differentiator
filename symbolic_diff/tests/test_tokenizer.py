@@ -1,5 +1,4 @@
 import string
-import pytest
 from hypothesis import given, strategies as st
 from symbolic_diff.tokenizer import tokenize, Token
 
