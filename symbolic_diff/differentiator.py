@@ -83,6 +83,24 @@ def differentiate_ast(ast: ASTNode, var: str) -> ASTNode:
                 [differentiate_ast(child, var) for child in ast.children],
             )
 
+        elif ast.value == "*":
+            # For (* u v w ...), d/dx(u*v*w) = (u'*v*w) + (u*v'*w) + (u*v*w') +
+            # ...
+            terms = []
+            for i in range(len(ast.children)):
+                # Only the i-th factor is differentiated
+                factors = []
+                for j, child in enumerate(ast.children):
+                    if j == i:
+                        factors.append(differentiate_ast(child, var))
+                    else:
+                        factors.append(child)
+                terms.append(ASTNode("OPERATOR", "*", factors))
+
+            if len(terms) == 1:
+                return terms[0]
+            return ASTNode("OPERATOR", "+", terms)
+
         raise ValueError(f"Operator not implemented: {ast.value}")
 
     raise ValueError(f"Unknown node type: {ast.type}")

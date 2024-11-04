@@ -94,7 +94,7 @@ def test_addition_multiple_variables(vars):
 
 
 @given(sexprs(max_depth=2), sexprs(max_depth=2), variables)
-def test_sum_rule(expr1, expr2, var):
+def test_sum_rule_property(expr1, expr2, var):
     """Property-based test for d/dx(f + g) = d/dx(f) + d/dx(g)"""
     sum_expr = f"(+ {expr1} {expr2})"
     sum_derivative = differentiate(sum_expr, var=var)
@@ -105,3 +105,54 @@ def test_sum_rule(expr1, expr2, var):
 
     # Convert both to AST before comparing
     assert sexp_to_ast(sum_derivative) == sexp_to_ast(separate_derivative)
+
+
+@given(st.lists(numbers, min_size=2, max_size=5))
+def test_product_constants(nums):
+    """Test that the derivative of a product of constants is 0."""
+    expr = f"(* {' '.join(nums)})"
+    result = differentiate(expr)
+    # Should be a sum of terms, each containing a 0
+    root = sexp_to_ast(result)
+    assert (
+        root.value == "+"
+        and root.type == "OPERATOR"
+        and (child.value == "0" and child.type == "NUMBER" for child in root.children)
+    )
+
+
+@given(variables, numbers)
+def test_product_rule_basic(var, num):
+    """Test basic product rule with variable and constant."""
+    expr = f"(* {var} {num})"
+    result = differentiate(expr, var=var)
+    expected = f"(+ (* 1 {num}) (* {var} 0))"
+    assert sexp_to_ast(result) == sexp_to_ast(expected)
+
+
+@given(sexprs(max_depth=2), sexprs(max_depth=2), variables)
+def test_product_rule_property(expr1, expr2, var):
+    """Property-based test for product rule: d/dx(f*g) = f'g + fg'"""
+    product_expr = f"(* {expr1} {expr2})"
+    product_derivative = differentiate(product_expr, var=var)
+
+    # Compute parts separately
+    d_expr1 = differentiate(expr1, var=var)
+    d_expr2 = differentiate(expr2, var=var)
+
+    # Build expected result: (+ (* f' g) (* f g'))
+    expected = f"(+ (* {d_expr1} {expr2}) (* {expr1} {d_expr2}))"
+
+    assert sexp_to_ast(product_derivative) == sexp_to_ast(expected)
+
+
+@given(st.lists(variables, min_size=2, max_size=5))
+def test_product_rule_variables(vars):
+    """Test basic properties of product rule with multiple variables."""
+    expr = f"(* {' '.join(vars)})"
+    target_var = vars[0]
+    result = differentiate(expr, var=target_var)
+    # Verify that the derivative is a sum
+    ast = sexp_to_ast(result)
+    assert ast.value == "+"
+    assert len(ast.children) == len(vars)
