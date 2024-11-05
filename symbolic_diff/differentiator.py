@@ -1,6 +1,5 @@
 from .parser import ASTNode, ast_to_sexp, sexp_to_ast
 from .simplifier import simplify_ast
-from .tokenizer import tokenize
 
 
 def validate_variable(var: str) -> None:
