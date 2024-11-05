@@ -1,3 +1,6 @@
+from .tokenizer import tokenize
+
+
 class ASTNode:
     # We use type_ with the underscore to avoid shadowing Python's built-in
     # type()
@@ -8,6 +11,7 @@ class ASTNode:
         # If children is None, it evaluates as falsy. So, or moves on to
         # evaluate the next value. So it's [], the second value, that's
         # returned.
+        # Boolean operators can be seen as control flow!
         self.children = children or []
 
     # Useful primarily for testing
@@ -24,6 +28,23 @@ class ASTNode:
     def __repr__(self):
         # By convention, a string that could be eval()ed to recreate the object
         return f"ASTNode({self.type}, {self.value}, {self.children})"
+
+
+def ast_to_sexp(ast: ASTNode) -> str:
+    """Convert AST back to s-expression string."""
+    if ast.type == "NUMBER":
+        return ast.value
+    elif ast.type == "VARIABLE":
+        return ast.value
+    elif ast.type == "OPERATOR":
+        children = " ".join(ast_to_sexp(child) for child in ast.children)
+        return f"({ast.value} {children})"
+    raise ValueError(f"Unknown node type: {ast.type}")
+
+
+def sexp_to_ast(sexp: str) -> ASTNode:
+    """Convert s-expression string to AST."""
+    return parse(tokenize(sexp))
 
 
 def parse(tokens):

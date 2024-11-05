@@ -1,23 +1,5 @@
-from .parser import parse, ASTNode
-from .tokenizer import tokenize
+from .parser import sexp_to_ast, ASTNode, ast_to_sexp
 from .simplifier import simplify_ast
-
-
-def ast_to_sexp(ast: ASTNode) -> str:
-    """Convert AST back to s-expression string."""
-    if ast.type == "NUMBER":
-        return ast.value
-    elif ast.type == "VARIABLE":
-        return ast.value
-    elif ast.type == "OPERATOR":
-        children = " ".join(ast_to_sexp(child) for child in ast.children)
-        return f"({ast.value} {children})"
-    raise ValueError(f"Unknown node type: {ast.type}")
-
-
-def sexp_to_ast(sexp: str) -> ASTNode:
-    """Convert s-expression string to AST."""
-    return parse(tokenize(sexp))
 
 
 def validate_variable(var: str) -> None:
@@ -132,6 +114,36 @@ def differentiate_ast(ast: ASTNode, var: str) -> ASTNode:
             # TODO: Variable exponents (requires natural log)
             # d/dx(u^v) = u^v * (v'*ln(u) + v*u'/u)
             raise ValueError("Non-constant exponents not yet supported")
+
+        elif ast.value == "/":
+            # d/dx(u/v) = (u'v - uv')/(v^2)
+            if len(ast.children) != 2:
+                raise ValueError("Division operator takes exactly 2 arguments")
+
+            u, v = ast.children
+            if v.type == "NUMBER" and v.value == "0":
+                raise ValueError("Cannot divide by zero")
+
+            du_dx = differentiate_ast(u, var)
+            dv_dx = differentiate_ast(v, var)
+
+            return ASTNode(
+                "OPERATOR",
+                "/",
+                [
+                    # Numerator: u'v - uv'
+                    ASTNode(
+                        "OPERATOR",
+                        "-",
+                        [
+                            ASTNode("OPERATOR", "*", [du_dx, v]),
+                            ASTNode("OPERATOR", "*", [u, dv_dx]),
+                        ],
+                    ),
+                    # Denominator: v^2
+                    ASTNode("OPERATOR", "^", [v, ASTNode("NUMBER", "2")]),
+                ],
+            )
 
         raise ValueError(f"Operator not implemented: {ast.value}")
 
