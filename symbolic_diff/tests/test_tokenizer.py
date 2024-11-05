@@ -1,6 +1,9 @@
 import string
-from hypothesis import given, strategies as st
-from symbolic_diff.tokenizer import tokenize, Token
+
+from hypothesis import given
+from hypothesis import strategies as st
+
+from symbolic_diff.tokenizer import Token, tokenize
 
 # Helper Hypothesis strategies
 operators = st.sampled_from("+-*/^")

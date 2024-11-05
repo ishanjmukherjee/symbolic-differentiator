@@ -1,6 +1,7 @@
 import pytest
+
+from symbolic_diff.parser import ASTNode, parse
 from symbolic_diff.tokenizer import tokenize
-from symbolic_diff.parser import parse, ASTNode
 
 
 def test_basic_parsing():
