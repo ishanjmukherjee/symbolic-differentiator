@@ -1,3 +1,3 @@
 from symbolic_diff.differentiator import differentiate
 
-print(differentiate("x\n", "x\n"))
+print(differentiate("(- (* .00001 _) 0)", "_"))

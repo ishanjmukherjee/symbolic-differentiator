@@ -389,3 +389,35 @@ def test_division_invalid():
     # Too many arguments
     with pytest.raises(ValueError):
         differentiate("(/ x 1 2)")
+
+
+@given(sexprs(max_depth=2), sexprs(max_depth=2), variables)
+def test_subtraction_rule_property(expr1, expr2, var):
+    """Property-based test for subtraction rule: d/dx(f-g) = f' - g'"""
+    diff_expr = f"(- {expr1} {expr2})"
+    diff_derivative = differentiate(diff_expr, var=var)
+
+    # Compute parts separately
+    d_expr1 = differentiate(expr1, var=var)  # f'
+    d_expr2 = differentiate(expr2, var=var)  # g'
+
+    # Build expected result: (- f' g')
+    expected = simplify(f"(- {d_expr1} {d_expr2})")
+
+    assert exprs_equivalent(diff_derivative, expected, var=var)
+
+
+@given(st.lists(st.integers(min_value=-100, max_value=100), min_size=2, max_size=2))
+def test_subtraction_constants(nums):
+    """Test that the derivative of a difference of constants is 0."""
+    expr = f"(- {nums[0]} {nums[1]})"
+    result = differentiate(expr)
+    assert result == "0"
+
+
+@given(variables)
+def test_subtraction_same_variable(var):
+    """Test that the derivative of x-x is 0."""
+    expr = f"(- {var} {var})"
+    result = differentiate(expr, var=var)
+    assert result == "0"
