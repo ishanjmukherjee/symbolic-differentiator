@@ -1,6 +1,6 @@
-from .parser import parse, ASTNode
-from .tokenizer import tokenize
+from .parser import ASTNode, parse
 from .simplifier import simplify_ast
+from .tokenizer import tokenize
 
 
 def ast_to_sexp(ast: ASTNode) -> str:

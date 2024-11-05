@@ -1,6 +1,8 @@
-from hypothesis import given, strategies as st
 import pytest
-from symbolic_diff.differentiator import differentiate, ast_to_sexp, sexp_to_ast
+from hypothesis import given
+from hypothesis import strategies as st
+
+from symbolic_diff.differentiator import ast_to_sexp, differentiate, sexp_to_ast
 
 operators = st.sampled_from("+-*/^")
 numbers = st.from_regex(r"^[+-]?(\d+\.?\d*|\.\d+)$").map(str.strip)
