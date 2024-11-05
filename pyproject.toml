@@ -1,3 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "symbolic-diff"
+version = "0.1.0"
+authors = [
+  { name="Ishan Mukherjee", email="ishanjmukherjee@gmail.com" },
+]
+description = "A symbolic differentiation library for Lisp-style s-expressions"
+readme = "README.md"
+requires-python = ">=3.11"  
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/ishanjmukherjee/symbolic-differentiator"
+"Bug Tracker" = "https://github.com/ishanjmukherjee/symbolic-differentiator/issues"
+
 [tool.black]
 line-length = 88
 target-version = ['py311']
