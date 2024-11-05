@@ -4,7 +4,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from symbolic_diff.differentiator import differentiate
+from symbolic_diff.differentiator import differentiate, validate_variable
 from symbolic_diff.parser import ASTNode, ast_to_sexp, sexp_to_ast
 from symbolic_diff.simplifier import simplify
 
@@ -210,6 +210,12 @@ def test_product_rule_property(expr1, expr2, var):
     expected = simplify(f"(+ (* {d_expr1} {expr2}) (* {expr1} {d_expr2}))")
 
     assert sexp_to_ast(product_derivative) == sexp_to_ast(expected)
+
+
+def test_power_non_constant_exponent():
+    """Test error handling for non-constant exponents"""
+    with pytest.raises(ValueError, match="Non-constant exponents not yet supported"):
+        differentiate("(^ x y)")
 
 
 def test_power_rule_basic():
@@ -421,3 +427,31 @@ def test_subtraction_same_variable(var):
     expr = f"(- {var} {var})"
     result = differentiate(expr, var=var)
     assert result == "0"
+
+
+def test_validate_variable_empty():
+    """Test that empty variable names are rejected"""
+    with pytest.raises(ValueError, match="Variable name cannot be empty"):
+        validate_variable("")
+
+
+def test_validate_variable_whitespace():
+    """Test that variable names with whitespace are rejected"""
+    with pytest.raises(ValueError, match="Variable name contains whitespace"):
+        validate_variable("x y")
+
+
+def test_validate_variable_invalid_start():
+    """Test that variable names starting with invalid characters are rejected"""
+    with pytest.raises(
+        ValueError, match="Variable name must start with letter or underscore"
+    ):
+        validate_variable("1x")
+
+
+def test_validate_variable_invalid_chars():
+    """Test that variable names with invalid characters are rejected"""
+    with pytest.raises(
+        ValueError, match="Variable name .* contains invalid characters"
+    ):
+        validate_variable("x@y")
