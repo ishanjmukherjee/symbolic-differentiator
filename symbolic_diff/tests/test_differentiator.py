@@ -4,7 +4,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from symbolic_diff.differentiator import differentiate
+from symbolic_diff.differentiator import differentiate, validate_variable
 from symbolic_diff.parser import ASTNode, ast_to_sexp, sexp_to_ast
 from symbolic_diff.simplifier import simplify
 
@@ -212,6 +212,12 @@ def test_product_rule_property(expr1, expr2, var):
     assert sexp_to_ast(product_derivative) == sexp_to_ast(expected)
 
 
+def test_power_non_constant_exponent():
+    """Test error handling for non-constant exponents"""
+    with pytest.raises(ValueError, match="Non-constant exponents not yet supported"):
+        differentiate("(^ x y)")
+
+
 def test_power_rule_basic():
     """Test basic power rule cases."""
     # x^0 -> 0
@@ -389,3 +395,63 @@ def test_division_invalid():
     # Too many arguments
     with pytest.raises(ValueError):
         differentiate("(/ x 1 2)")
+
+
+@given(sexprs(max_depth=2), sexprs(max_depth=2), variables)
+def test_subtraction_rule_property(expr1, expr2, var):
+    """Property-based test for subtraction rule: d/dx(f-g) = f' - g'"""
+    diff_expr = f"(- {expr1} {expr2})"
+    diff_derivative = differentiate(diff_expr, var=var)
+
+    # Compute parts separately
+    d_expr1 = differentiate(expr1, var=var)  # f'
+    d_expr2 = differentiate(expr2, var=var)  # g'
+
+    # Build expected result: (- f' g')
+    expected = simplify(f"(- {d_expr1} {d_expr2})")
+
+    assert exprs_equivalent(diff_derivative, expected, var=var)
+
+
+@given(st.lists(st.integers(min_value=-100, max_value=100), min_size=2, max_size=2))
+def test_subtraction_constants(nums):
+    """Test that the derivative of a difference of constants is 0."""
+    expr = f"(- {nums[0]} {nums[1]})"
+    result = differentiate(expr)
+    assert result == "0"
+
+
+@given(variables)
+def test_subtraction_same_variable(var):
+    """Test that the derivative of x-x is 0."""
+    expr = f"(- {var} {var})"
+    result = differentiate(expr, var=var)
+    assert result == "0"
+
+
+def test_validate_variable_empty():
+    """Test that empty variable names are rejected"""
+    with pytest.raises(ValueError, match="Variable name cannot be empty"):
+        validate_variable("")
+
+
+def test_validate_variable_whitespace():
+    """Test that variable names with whitespace are rejected"""
+    with pytest.raises(ValueError, match="Variable name contains whitespace"):
+        validate_variable("x y")
+
+
+def test_validate_variable_invalid_start():
+    """Test that variable names starting with invalid characters are rejected"""
+    with pytest.raises(
+        ValueError, match="Variable name must start with letter or underscore"
+    ):
+        validate_variable("1x")
+
+
+def test_validate_variable_invalid_chars():
+    """Test that variable names with invalid characters are rejected"""
+    with pytest.raises(
+        ValueError, match="Variable name .* contains invalid characters"
+    ):
+        validate_variable("x@y")
