@@ -145,6 +145,20 @@ def differentiate_ast(ast: ASTNode, var: str) -> ASTNode:
                 ],
             )
 
+        elif ast.value == "-":
+            # d/dx(u - v) = u' - v'
+            if len(ast.children) != 2:
+                raise ValueError("Subtraction operator takes exactly 2 arguments")
+
+            return ASTNode(
+                "OPERATOR",
+                "-",
+                [
+                    differentiate_ast(ast.children[0], var),
+                    differentiate_ast(ast.children[1], var),
+                ],
+            )
+
         raise ValueError(f"Operator not implemented: {ast.value}")
 
     raise ValueError(f"Unknown node type: {ast.type}")
