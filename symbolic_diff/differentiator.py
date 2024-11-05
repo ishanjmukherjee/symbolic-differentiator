@@ -101,6 +101,38 @@ def differentiate_ast(ast: ASTNode, var: str) -> ASTNode:
                 return terms[0]
             return ASTNode("OPERATOR", "+", terms)
 
+        elif ast.value == "^":
+            if len(ast.children) != 2:
+                raise ValueError("Power operator takes exactly 2 arguments")
+
+            base, exponent = ast.children
+
+            # Constant exponents
+            if exponent.type == "NUMBER":
+                n = int(exponent.value)
+                if n == 0:
+                    return ASTNode("NUMBER", "0")
+
+                # Get derivative of base
+                du_dx = differentiate_ast(base, var)
+                if n == 1:
+                    return du_dx
+
+                # d/dx(u^n) = n*u^(n-1)*u'
+                return ASTNode(
+                    "OPERATOR",
+                    "*",
+                    [
+                        ASTNode("NUMBER", str(n)),
+                        ASTNode("OPERATOR", "^", [base, ASTNode("NUMBER", str(n - 1))]),
+                        du_dx,
+                    ],
+                )
+
+            # TODO: Variable exponents (requires natural log)
+            # d/dx(u^v) = u^v * (v'*ln(u) + v*u'/u)
+            raise ValueError("Non-constant exponents not yet supported")
+
         raise ValueError(f"Operator not implemented: {ast.value}")
 
     raise ValueError(f"Unknown node type: {ast.type}")

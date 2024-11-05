@@ -16,10 +16,16 @@ def sexprs(draw, max_depth=2):
         return draw(st.one_of(numbers, variables))
 
     # Recursive case: generate an operator expression
-    operator = draw(st.sampled_from(["+"]))  # Starting with +, add other ops later
-    num_operands = draw(st.integers(min_value=2, max_value=5))
-    operands = [draw(sexprs(max_depth=max_depth - 1)) for _ in range(num_operands)]
-    return f"({operator} {' '.join(operands)})"
+    operator = draw(st.sampled_from(["+", "*", "^"]))
+    if operator == "^":
+        # For power, always generate number as exponent to avoid unsupported cases
+        base = draw(sexprs(max_depth=max_depth - 1))
+        exponent = draw(st.integers(min_value=0, max_value=5))
+        return f"(^ {base} {exponent})"
+    else:
+        num_operands = draw(st.integers(min_value=2, max_value=5))
+        operands = [draw(sexprs(max_depth=max_depth - 1)) for _ in range(num_operands)]
+        return f"({operator} {' '.join(operands)})"
 
 
 @given(sexprs())
@@ -156,3 +162,123 @@ def test_product_rule_variables(vars):
     ast = sexp_to_ast(result)
     assert ast.value == "+"
     assert len(ast.children) == len(vars)
+
+
+def test_power_rule_basic():
+    """Test basic power rule cases."""
+    # x^0 -> 0
+    assert differentiate("(^ x 0)") == "0"
+
+    # x^1 -> 1
+    assert differentiate("(^ x 1)") == "1"
+
+    # x^2 -> 2x^1
+    result = differentiate("(^ x 2)")
+    expected = "(* 2 (^ x 1) 1)"
+    expected_simplified = "(* 2 (^ x 1))"
+    assert result == expected or result == expected_simplified
+    assert sexp_to_ast(result) == sexp_to_ast(expected) or sexp_to_ast(
+        result
+    ) == sexp_to_ast(
+        expected_simplified
+    )  # simplified or unsimplified form
+
+    # x^3 -> 3x^2
+    result = differentiate("(^ x 3)")
+    expected = "(* 3 (^ x 2) 1)"
+    expected_simplified = "(* 3 (^ x 2))"
+    assert result == expected or result == expected_simplified
+    assert sexp_to_ast(result) == sexp_to_ast(expected) or sexp_to_ast(
+        result
+    ) == sexp_to_ast(expected_simplified)
+
+
+@given(st.integers(min_value=0, max_value=10))
+def test_power_rule_variable(n):
+    """Test power rule with variable base and constant integer exponent."""
+    expr = f"(^ x {n})"
+    result = differentiate(expr)
+
+    if n == 0:
+        assert result == "0"
+    elif n == 1:
+        assert result == "1"
+    else:
+        # Should be n * x^(n-1)
+        expected = f"(* {n} (^ x {n-1}))"
+        expected_simplified = f"(* {n} (^ x {n-1}) 1)"
+        assert result == expected or result == expected_simplified
+        assert sexp_to_ast(result) == sexp_to_ast(expected) or sexp_to_ast(
+            result
+        ) == sexp_to_ast(expected_simplified)
+
+
+@given(variables, st.integers(min_value=0, max_value=5))
+def test_power_rule_any_variable(var, n):
+    """Test power rule works with any variable."""
+    expr = f"(^ {var} {n})"
+    result = differentiate(expr, var=var)
+
+    if n == 0:
+        assert result == "0"
+    elif n == 1:
+        assert result == "1"
+    else:
+        expected = f"(* {n} (^ {var} {n-1}) 1)"
+        expected_simplified = f"(* {n} (^ {var} {n-1}))"
+        assert result == expected or result == expected_simplified
+        assert sexp_to_ast(result) == sexp_to_ast(expected) or sexp_to_ast(
+            result
+        ) == sexp_to_ast(expected_simplified)
+
+
+@given(sexprs(max_depth=2), st.integers(min_value=0, max_value=5), variables)
+def test_power_rule_compound_base(base_expr, n, var):
+    """Test power rule with compound bases produces parsable sexprs."""
+    try:
+        expr = f"(^ {base_expr} {n})"
+        result = differentiate(expr, var=var)
+
+        # Verify parsability
+        ast = sexp_to_ast(result)
+
+        if n == 0:
+            assert result == "0"
+        else:
+            # Verify validity of AST structure
+            _ = ast_to_sexp(ast)
+    except Exception as e:
+        pytest.fail(f"Failed with expr={expr}, n={n}: {str(e)}")
+
+
+@given(st.integers(min_value=1, max_value=5), st.integers(min_value=2, max_value=5))
+def test_power_rule_chain_rule(factor, exponent):
+    """Test power rule combined with chain rule."""
+    # d/dx((2x)^n)
+    expr = f"(^ (* {factor} x) {exponent})"
+    result = differentiate(expr)
+
+    # n * (2x)^(n-1) * 2
+    expected = (
+        f"(* {exponent} (^ (* {factor} x) {exponent-1}) (+ (* 0 x) (* {factor} 1)))"
+    )
+    expected_simplified = f"(* {exponent} (^ (* {factor} x) {exponent-1}) {factor})"
+    assert result == expected or result == expected_simplified
+    assert sexp_to_ast(result) == sexp_to_ast(expected) or sexp_to_ast(
+        result
+    ) == sexp_to_ast(expected_simplified)
+
+
+def test_power_invalid():
+    """Test invalid power expressions."""
+    # Non-constant exponents not yet implemented
+    with pytest.raises(ValueError):
+        differentiate("(^ x x)")
+    with pytest.raises(ValueError):
+        differentiate("(^ x y)")
+    # Too few arguments
+    with pytest.raises(ValueError):
+        differentiate("(^ x)")
+    # Too many arguments
+    with pytest.raises(ValueError):
+        differentiate("(^ x 2 3)")
