@@ -59,6 +59,7 @@ def exprs_equivalent(expr1: str, expr2: str, test_values=None, var: str = "x") -
         for x in test_values
     )
 
+
 operators = st.sampled_from("+-*/^")
 numbers = st.from_regex(r"^[+-]?(\d+\.?\d*|\.\d+)$").map(str.strip)
 variables = st.from_regex(r"^[a-z_][a-z0-9_]*$").map(str.strip)

@@ -1,4 +1,4 @@
-from .parser import sexp_to_ast, ASTNode, ast_to_sexp
+from .parser import ASTNode, ast_to_sexp, sexp_to_ast
 from .simplifier import simplify_ast
 from .tokenizer import tokenize
 
