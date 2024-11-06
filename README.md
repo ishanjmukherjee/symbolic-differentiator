@@ -1,6 +1,6 @@
 # Symbolic differentiator
 
-![CI](https://github.com/ishanjmukherjee/symbolic-differentiator/actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/ishanjmukherjee/symbolic-differentiator/actions/workflows/ci.yml/badge.svg)](https://github.com/ishanjmukherjee/symbolic-differentiator/actions)
 
 
 A Python library for symbolic differentiation of mathematical expressions. This
