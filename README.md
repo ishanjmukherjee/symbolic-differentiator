@@ -105,47 +105,6 @@ well for testing. From the linked documentation:
 >
 > It works by letting you write tests that assert that something should be true for every case, not just the ones you happen to think of.
 
-Here is an example of a test:
-
-```python
-@st.composite
-def sexprs(draw, max_depth=2):
-    """Generate random s-expressions with bounded depth."""
-    if max_depth == 0:
-        # Base case: return either a number or variable
-        return draw(st.one_of(numbers, variables))
-
-    # Recursive case: generate an operator expression
-    operator = draw(st.sampled_from(["+", "*"]))
-    if operator == "^":
-        # For power, always generate number as exponent to avoid unsupported cases
-        base = draw(sexprs(max_depth=max_depth - 1))
-        exponent = draw(st.integers(min_value=0, max_value=5))
-        return f"(^ {base} {exponent})"
-    else:
-        num_operands = draw(st.integers(min_value=2, max_value=5))
-        operands = [draw(sexprs(max_depth=max_depth - 1)) for _ in range(num_operands)]
-        return f"({operator} {' '.join(operands)})"
-
-@given(sexprs(max_depth=2), sexprs(max_depth=2), variables)
-def test_product_rule_property(expr1, expr2, var):
-    """Property-based test for product rule: d/dx(f*g) = f'g + fg'"""
-    product_expr = f"(* {expr1} {expr2})"
-    product_derivative = differentiate(product_expr, var=var)
-
-    # Compute parts separately
-    d_expr1 = differentiate(expr1, var=var)
-    d_expr2 = differentiate(expr2, var=var)
-
-    # Build expected result: (+ (* f' g) (* f g'))
-    expected = simplify(f"(+ (* {d_expr1} {expr2}) (* {expr1} {d_expr2}))")
-
-    assert sexp_to_ast(product_derivative) == sexp_to_ast(expected)
-```
-
-We use a Hypothesis strategy to generate arbitrary s-expressions, then check to
-see that a basic property of the product rule of derivatives always holds true.
-
 ## Development
 
 GitHub Actions for continuous integration, running style checks, automated
