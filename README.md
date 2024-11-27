@@ -14,7 +14,8 @@ variable.
 - Supports `+` and `*` with multiple operands.
 - Supports `-`, `/` and `^` with two operands.
 - Error handling and input validation.
-- Property-based testing of invariants using [Hypothesis](https://hypothesis.readthedocs.io/en/latest/).
+
+Though this project is mostly an exercise in property-based testing of invariants using [Hypothesis](https://hypothesis.readthedocs.io/en/latest/).
 
 ## Installation
 
